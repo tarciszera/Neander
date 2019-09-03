@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+  <channel>
+    <title>itemis Blog</title>
+    <link>https://blogs.itemis.com</link>
+    <description>Der Blog der itemis AG: Softwareentwicklung, Usability Engineering, Xtext, Scrum und vieles mehr</description>
+    <language>en-us</language>
+    <pubDate>Tue, 23 Jul 2019 14:00:10 GMT</pubDate>
+    <dc:date>2019-07-23T14:00:10Z</dc:date>
+    <dc:language>en-us</dc:language>
+    <item>
+      <title>State machine origami</title>
+      <link>https://blogs.itemis.com/en/state-machine-origami</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/state-machine-origami" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog%20%282019%29/Embedded/YSCT/State%20Machine%20Origami/RobotArm.jpg" alt="Figure 1: robot controller as an example for a embedded software system." class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;&lt;strong&gt;State machines can be used to graphically describe the behavior of components and generate efficient code in C or C++. The interaction of statecharts with their environment is described using concepts such as events and formal interfaces.&lt;/strong&gt;&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;&lt;strong&gt;State machines can be used to graphically describe the behavior of components and generate efficient code in C or C++. The interaction of statecharts with their environment is described using concepts such as events and formal interfaces.&lt;/strong&gt;&lt;/p&gt;  
+&lt;p&gt;&lt;strong&gt;Originally published in German on &lt;a href="https://www.embedded-software-engineering.de/zustandsautomaten-origami-a-632819/"&gt;embedded software engineering&lt;/a&gt; on August 09th 2017 | Author / Editor: Dr. Klaus Birken and Axel Terfloth / Christine Kremser&lt;/strong&gt;&lt;/p&gt; 
+&lt;p&gt;Franca allows the modeling of such interfaces, especially their semantics, i.e., permitted sequences of events. In most projects, this information is only documented informally – with Franca, the permitted processes are machine-readable and can therefore be checked automatically. Tools for creating state machines can make use of this semantic information and support the developer interactively, e.g., by pointing out expected or to-be-sent events as well as unattainable states. This ensures compliance with all interface contracts and ultimately ensures the quality of the code.&lt;/p&gt; 
+&lt;h2&gt;Describing interfaces and their dynamics with Franca&lt;/h2&gt; 
+&lt;p&gt;In embedded development, interfaces between components or subsystems should not be designed and represented directly as C header files, but at a higher abstraction level, independent of the programming language. This is made possible by a description language for interfaces or &lt;strong&gt;IDL&lt;/strong&gt; (short for Interface Definition Language)&lt;a title="footnote1" href="#footnote1"&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;. This reduces the syntax to exactly the vocabulary needed for the definition of interfaces. The mapping to a programming language is typically done by code generation.&lt;/p&gt; 
+&lt;p&gt;An IDL allows the formal description of interfaces to be independent of the target platform and language. This allows the same interfaces to be used for integration across subsystems, programming languages, controllers and ECUs. Interfaces thus become a comprehensive tool for architects and developers.&lt;/p&gt; 
+&lt;p&gt;&lt;strong&gt;Franca&lt;/strong&gt;&lt;a title="footnote2" href="#footnote2"&gt;&lt;sup&gt;[2]&lt;/sup&gt;&lt;/a&gt; offers such an IDL, plus various tools for creating, editing, and generating program code from interfaces. Franca was initially developed as part of the &lt;strong&gt;GENIVI consortium&lt;/strong&gt;&lt;a title="footnote3" href="#footnote3"&gt;&lt;sup&gt;[3]&lt;/sup&gt;&lt;/a&gt; and is currently on its way to becoming an official project under the umbrella of the Eclipse Foundation. The different aspects of Franca were presented at past ESE conferences, e.g..&lt;a title="footnote1" href="#footnote1"&gt;&lt;sup&gt;[1]&lt;/sup&gt;&lt;/a&gt;&lt;a title="footnote4" href="#footnote4"&gt;&lt;sup&gt;[4]&lt;/sup&gt;&lt;/a&gt;&lt;a title="footnote6" href="#footnote6"&gt;&lt;sup&gt;[6]&lt;/sup&gt;&lt;/a&gt;&lt;/p&gt; 
+&lt;p&gt;The typical language range of an IDL covers the &lt;strong&gt;static parts&lt;/strong&gt; of interfaces, i.e., data types, attributes, and function calls. This is initially sufficient for the documentation of the interfaces and also for code generation, since only static parts of interfaces are described in programming languages (C headers or C++ classes do not contain any definitions of, e.g., call sequences).&lt;/p&gt; 
+&lt;p&gt;Today, the &lt;strong&gt;dynamic parts&lt;/strong&gt; of interfaces are usually only taken into account during implementation. These are permitted call sequences and their parameter values. Non-functional properties, such as timing restrictions, also belong to the dynamic parts.&lt;/p&gt; 
+&lt;p&gt;Especially for more complex systems, it makes sense to define the dynamic components as part of the interface definition, because the interface designer has the most exact idea of how to use his interface&lt;a title="footnote4" href="#footnote4"&gt;&lt;sup&gt;[4]&lt;/sup&gt;&lt;/a&gt;. By formally defining the dynamics, the interface designer can communicate this to subsequent implementers. This increases the quality of the reulting software system.&lt;/p&gt; 
+&lt;p&gt;Franca supports exactly this description of the dynamic behavior of interfaces. For this, Franca IDL offers the possibility to specify &lt;strong&gt;contracts&lt;/strong&gt; of interfaces in the form of protocol state machines. These are state machines which are located at the connection between the two communicating software parts, e.g., components, and react to communication events in both directions.&lt;/p&gt; 
+&lt;p&gt;For example, a state transition occurs when the client side calls a remote method. Another state transition is triggered when the server side sends the response message to this method. In each state of the protocol machine, only those events described by outgoing transitions are allowed. All other events would be protocol errors and thus violations of the contract.&lt;/p&gt; 
+&lt;p&gt;With Franca, the state machines are textually modeled as part of the IDL. In a previous year's article, it was shown in detail how such behavior definitions can be used to validate trace data from a real &lt;a href="https://www.embedded-software-engineering.de/was-ist-ein-embedded-system-a-665424/" title="Was ist ein Embedded System? (opens in a new tab)"&gt;embedded system&lt;/a&gt; in operation&lt;a title="footnote4" href="#footnote4"&gt;&lt;sup&gt;[4]&lt;/sup&gt;&lt;/a&gt;. This article now describes how such dynamic definitions can be used at the interface already&lt;strong&gt; during the implementation&lt;/strong&gt; of an embedded system, if this implementation is done using a statechart modeling tool.&lt;/p&gt; 
+&lt;h2&gt;Creating embedded software using statecharts&lt;/h2&gt; 
+&lt;p&gt;State machines are an understandable formalism that has proven ideal for the specification and implementation of the reactive behavior of systems. There are a number of approaches to efficiently implement state machines in programming languages such as C and C++.&lt;/p&gt; 
+&lt;p&gt;&lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;&lt;strong&gt;YAKINDU Statechart Tools (YSCT)&lt;/strong&gt;&lt;/a&gt;&lt;a title="footnote5" href="#footnote5"&gt;&lt;sup&gt;[5] &lt;/sup&gt;&lt;/a&gt;provides a tooling environment for modeling, simulation, and code generation of statecharts.&lt;/p&gt; 
+&lt;h2&gt;Statecharts with Franca interfaces – integration of tools and models&lt;/h2&gt; 
+&lt;p&gt;Software components that are implemented using statecharts usually interact with other software components. This requires well-defined interfaces, which suggests to describe the interfaces of the software components with an IDL.&lt;/p&gt; 
+&lt;p&gt;Such an integration exists between Franca and YSCT. The statecharts offer the possibility to define ports for the connection of suitable software components. For each port, it can be specified whether an interface defined in Franca is to be provided or used.&lt;/p&gt; 
+&lt;p&gt;The events, methods, and data elements defined in the interface can then be used directly in the statechart. Depending on whether the statechart acts as a user or as a provider of an interface, suitable elements are available.&lt;/p&gt; 
+&lt;p&gt;Software components often have more than one interface and must also be interface-compliant with regard to their dynamic behavior. However, the complexity of the interfaces potentially multiplies in the implementation of the components, so that the validation and test efforts can become very large without further aids.&lt;/p&gt; 
+&lt;p&gt;The following example shows how you can automatically validate the implementation state machines using protocol state machines for the interfaces.&lt;/p&gt; 
+&lt;h2&gt;Example project: robot arm control&lt;/h2&gt; 
+&lt;p&gt;A control software for a robot arm serves as an example for the described integration of the open-source tools YSCT and Franca. The robot hardware is a Lynxmotion AL5D kit with an SSC32 control board. Figure 1 shows the robot arm, which consists of five axes and a gripper unit.&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/State%20Machine%20Origami/RobotArm.jpg?width=600&amp;amp;name=RobotArm.jpg" alt="Figure 1: robot controller as an example for a embedded software system." width="600" style="width: 600px; display: block; margin: 0px auto;"&gt; 
+&lt;p style="text-align: center;"&gt;&lt;em&gt;Figure 1: robot controller as an example for a embedded software system&lt;/em&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;For our example, we model the behavior at the application interface of the robot controller; this allows controlling the following functions:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;The gripper can hold and release objects (&lt;em&gt;grab&lt;/em&gt; and &lt;em&gt;release &lt;/em&gt;operations).&lt;/li&gt; 
+ &lt;li&gt;The arm can move the gripper to a certain cartesian position (operation &lt;em&gt;move&lt;/em&gt;).&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;Accordingly, the static elements of the interface are the methods &lt;em&gt;move&lt;/em&gt;, &lt;em&gt;grab&lt;/em&gt;, and &lt;em&gt;release&lt;/em&gt;. Each execution of one of these methods consists of two events: first, the client side of the interface calls the method; then the server side sends a positive or negative response. In addition to this elementary protocol definitions, there are technical restrictions on the permitted processes.&lt;/p&gt; 
+&lt;p&gt;For example, a release operation without a previous &lt;em&gt;grab&lt;/em&gt; operation does not make sense. In total, all permitted sequences can be defined by the protocol state machine from figure 2.&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/State%20Machine%20Origami/RobotArmContract.png?width=600&amp;amp;name=RobotArmContract.png" alt="Figure 2: The protocol state machine is formulated as part of the interface definition." width="600" style="width: 600px; display: block; margin: 0px auto;"&gt; 
+&lt;p style="text-align: center;"&gt;&lt;em&gt;Figure 2: The protocol state machine is formulated as part of the interface definition.&lt;/em&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;A protocol state machine as shown in figure 2 is formulated as part of the interface definition, using Franca IDL. It is important that this only describes the semantics of the interface and not the actual implementation of the control component. The latter is created by another, much more detailed state machine with YAKINDU Statecharts Tools.&lt;/p&gt; 
+&lt;h2&gt;Interactive feedback during statechart modeling&lt;/h2&gt; 
+&lt;p&gt;An earlier ESE contribution showed how recorded trace data can be automatically validated against one or more protocol state machines&lt;a title="footnote4" href="#footnote4"&gt;&lt;sup&gt;[4]&lt;/sup&gt;&lt;/a&gt;. This increases the quality of the resulting product by detecting and correcting errors in the implementation during testing.&lt;/p&gt; 
+&lt;p&gt;However, it is better to avoid errors already during implementation. This is made possible by the integration of YSCT and Franca: During development, the implementation statecharts are constantly being checked against the protocol state machines of the Franca interfaces involved. The developer is guided by interactive feedback.&lt;/p&gt; 
+&lt;p&gt;Figure 3 of the &lt;em&gt;RobotArm&lt;/em&gt; example shows which information is derived from the interface definitions and how it is presented to the user. The developer has just started building the state machine for the &lt;em&gt;RobotArm&lt;/em&gt; control component. This component implements the &lt;em&gt;RobotArm&lt;/em&gt; interface with the behavior shown in figure 2.&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/State%20Machine%20Origami/RobotArm_S03.png?width=926&amp;amp;name=RobotArm_S03.png" alt="Figure 3: Interactive feedback in the statechart editor." width="926" style="width: 926px;"&gt; 
+&lt;p style="text-align: center;"&gt;&lt;em&gt;Figure 3: Interactive feedback in the statechart editor.&lt;/em&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;The following information is derived from the interface definition:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;In the&lt;em&gt; idle&lt;/em&gt; state, the call of the move operation is handled (see transition &lt;em&gt;IdleMoving&lt;/em&gt;), but the handling of the &lt;em&gt;grab&lt;/em&gt; operation is missing. This is indicated by a warning. The developer is instructed to add another transition (and another state) to handle the &lt;em&gt;grab&lt;/em&gt; call.&lt;/li&gt; 
+ &lt;li&gt;The &lt;em&gt;Moving&lt;/em&gt; state is reached by a &lt;em&gt;move&lt;/em&gt; call. However, the response to the &lt;em&gt;move&lt;/em&gt; operation is still outstanding, which is represented by a notification (“Proposed send…”). This instructs the developer to implement the &lt;em&gt;move&lt;/em&gt; response.&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;Further work on the state machine will interactively generate further warnings and information, which will then be processed by more developer actions. At the end, a state machine is created that no longer causes any warnings.&lt;/p&gt; 
+&lt;p&gt;This shows that the specifications of the protocol state machine are taken into account. In the case of complex components with more than one interface, the positive effect is reinforced because the developer can be guided even better by more information.&lt;/p&gt; 
+&lt;p&gt;In the next step, additional suggestions are offered for each of the tool’s warnings or information items, so that the developer can quickly fix or implement the issue directly with a mouse click (so-called &lt;strong&gt;quick fixes&lt;/strong&gt;). This way, the developer can have complete parts of the state machine generated automatically and at the same time resolve existing warnings.&lt;/p&gt; 
+&lt;h2&gt;Advantages for embedded practice&lt;/h2&gt; 
+&lt;p&gt;Tools for modeling state machines and code generation are used everywhere in embedded projects. In this article, it has been shown how the innovative consideration of interface semantics can guide developers to ensure that the behavior of the created software components conforms to given interfaces.&lt;/p&gt; 
+&lt;p&gt;The developer is automatically notified about potential errors as early as possible and thus disburdened. Implementation errors are detected and corrected at an early stage, thus increasing the quality of the software and speeding up the development process. The expensive elimination of integration errors and errors in general.&lt;/p&gt; 
+&lt;p&gt;The model-based definition of interfaces is necessary and useful, especially for distributed applications. With Franca IDL, interfaces can be formally defined and can then serve as a machine-readable “contract” for the parties and systems involved.&lt;/p&gt; 
+&lt;p&gt;The integration of the Franca IDL and &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt; brings additional benefits for developers and architects.&lt;/p&gt;  
+&lt;h2&gt;References&lt;/h2&gt; 
+&lt;p&gt;&lt;sup&gt;[1]&lt;/sup&gt; K. Birken: Interfaces fully under control - model-based approaches with the open source tool Franca. In: Conference Proceedings - Embedded Software Engineering Congress 2012, Sindelfingen, 2012.&lt;/p&gt; 
+&lt;p&gt;&lt;sup&gt;[2]&lt;/sup&gt;&lt;a href="http://code.google.com/a/eclipselabs.org/p/franca/"&gt;http://code.google.com/a/eclipselabs.org/p/franca/&lt;/a&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;sup&gt;[3]&lt;/sup&gt;&lt;a href="http://www.genivi.org"&gt;http://www.genivi.org&lt;/a&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;sup&gt;[4]&lt;/sup&gt; K. Birches: Describing Interfaces Dynamically with Franca. In: Conference Proceedings - Embedded Software Engineering Congress 2013, Sindelfingen, 2013.&lt;/p&gt; 
+&lt;p&gt;&lt;sup&gt;[5]&lt;/sup&gt; &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;sup&gt;[6]&lt;/sup&gt; T. Szabo, K. Birken: Model-based on the Internet of Things. In: Conference Proceedings - Embedded Software Engineering Congress 2014, Sindelfingen, 2014.&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fstate-machine-origami&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <category>englisch</category>
+      <pubDate>Tue, 23 Jul 2019 14:00:00 GMT</pubDate>
+      <author>birken@itemis.de, terfloth@itemis.de (Dr. Klaus Birken and Axel Terfloth)</author>
+      <guid>https://blogs.itemis.com/en/state-machine-origami</guid>
+      <dc:date>2019-07-23T14:00:00Z</dc:date>
+    </item>
+    <item>
+      <title>Deep Java integration for YAKINDU state machines</title>
+      <link>https://blogs.itemis.com/en/deep-java-integration-for-yakindu-state-machines</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/deep-java-integration-for-yakindu-state-machines" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/yakindu/traceability/adapters/yakindu-statechart-tools.png" alt="yakindu-statechart-tools" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;Did you ever want to use a state machine in your Java code? Usually you would implement some switch-case statements over an enumeration or the more object-oriented state pattern. For larger state machines, this approach quickly gets hard to read and maintain. &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt; come with a graphical editor to model your statechart and to generate the corresponding Java code automatically for you.&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;Did you ever want to use a state machine in your Java code? Usually you would implement some switch-case statements over an enumeration or the more object-oriented state pattern. For larger state machines, this approach quickly gets hard to read and maintain. &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt; come with a graphical editor to model your statechart and to generate the corresponding Java code automatically for you.&lt;/p&gt; 
+&lt;p&gt;However, up to now it was not possible to access Java code from within the graphical statechart, hence integrating the state machine code into your application code required quite some glue code. This is where our new feature, the &lt;strong&gt;deep Java integration&lt;/strong&gt;, enters the stage.&lt;/p&gt; 
+&lt;p&gt;Deep Java integration in YAKINDU Statechart Tools allows you to &lt;strong&gt;directly access Java APIs&lt;/strong&gt; in your statechart. Hence it facilitates an incorporation of state machine modeling in your Java development process. Currently, deep Java integration is work in progress. However, we just released a beta version containing the following features:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;You can import Java classes, interfaces and enums in your statechart and use them for your statechart variables.&lt;/li&gt; 
+ &lt;li&gt;You can access all public and static members, like variables and methods, directly from the statechart. This avoids lots of boilerplate code.&lt;/li&gt; 
+ &lt;li&gt;Java methods that are used in your statechart will be called during simulation. This avoids the cumbersome mocking of return values in the simulation process.&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-music-player-example.png?width=966&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-music-player-example.png" alt="Deep Java integration for YAKINDU state machines: music player example" style="width: 966px;" width="966"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;h2&gt;Use Java types for statechart variables&lt;/h2&gt; 
+&lt;p&gt;Deep Java integration is available for Java domain statecharts. You can select the Java domain in the statechart’s properties or when you create a new statechart.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-set-Java-domain.png?width=231&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-set-Java-domain.png" alt="Deep Java integration for YAKINDU state machines: set Java domain" style="width: 231px;" width="231"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;A Java domain statechart uses a Java-oriented typesystem. You can use native Java types (like &lt;code&gt;int&lt;/code&gt;) or their wrapper types (like &lt;code&gt;java.lang.Integer&lt;/code&gt;) in variable declarations.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-Java-oriented-types.png?width=234&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-Java-oriented-types.png" alt="Deep Java integration for YAKINDU state machines: Java oriented types" style="width: 234px;" width="234"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;In addition, you can use the &lt;code&gt;import&lt;/code&gt; statement to import Java classes, interfaces or enums. The content assist &lt;code&gt;[Ctrl]+[Space]&lt;/code&gt; lists all classes that are on your project’s classpath. You can import classes from your JRE as well as your own ones.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-import-options.png?width=454&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-import-options.png" alt="Deep Java integration for YAKINDU state machines: import options" style="width: 454px;" width="454"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;Using Java types in your statechart also means that you can use generics, just as you would use them in your Java code.&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;import: "java.util.List"
+import: "com.yakindu.sct.examples.musicplayer.java.Song"
+
+internal:
+
+var playList : List&amp;lt;Song&amp;gt;
+&lt;/pre&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;The Java-oriented typesystem is able to infer generic type information. It emits errors in case types do not match. In that way you can already avoid compilation errors before even generating any code.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-type-errors.png?width=387&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-type-errors.png" alt="Deep Java integration for YAKINDU state machines: type errors" style="width: 387px;" width="387"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;Instantiation works slightly different than in Java. Instead of introducing the keyword new to our statechart language, constructors are transformed into static factory methods named &lt;em&gt;new(…)&lt;/em&gt;.&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;var playlist : List&amp;lt;Song&amp;gt; = ArrayList.new()
+&lt;/pre&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;h2&gt;Accessing public members&lt;/h2&gt; 
+&lt;p&gt;Once you have a variable of a Java type, you can access all its public members, like methods or variables. Here again, the content assist gives you an overview of all accessible members, which contains all public instance as well as static class members.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-accessing-public-members.png?width=373&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-accessing-public-members.png" alt="Deep Java integration for YAKINDU state machines: accessing public members" style="width: 373px;" width="373"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;h2&gt;Calling Java APIs during simulation&lt;/h2&gt; 
+&lt;p&gt;YAKINDU Statechart Tools offer a &lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/simu_simulating_statecharts"&gt;built-in simulation&lt;/a&gt; for validating the behavior of your system even before generating any code. You can start the simulation in the context menu via &lt;i&gt;Run → Run As → Statechart Simulation&lt;/i&gt;.&lt;/p&gt; 
+&lt;p&gt;For Java domain statecharts, the simulation directly invokes the referenced Java methods. You can see the effects in the simulation view, where you can also manually change the values of accessible variables or raise events to see how your system reacts. You can also set &lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/advsim_debugging_with_breakpoints_and_snapshots#advsim_debugging_with_breakpoints_and_snapshots"&gt;breakpoints&lt;/a&gt; on states and transitions, just as if you were debugging your Java code.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-simulation-view.png?width=776&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-simulation-view.png" alt="Deep Java integration for YAKINDU state machines: simulation view" style="width: 776px;" width="776"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;h2&gt;Code generation and integration with client code&lt;/h2&gt; 
+&lt;p&gt;We have adapted the &lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/codegen_java_code_generator#codegen_java_code_generator"&gt;Java code generator&lt;/a&gt; that comes with the standard version of YAKINDU Statechart Tools to also generate proper Java code for Java domain statecharts. To use the generated state machine code in your Java application, you basically need to implement the following steps:&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;private void setup() {
+  // 1. Initialize state machine
+  IPlayerStatemachine statemachine = new PlayerStatemachine();
+  statemachine.init();
+  
+  // 2. Hook-up in-events
+  playBtn.setOnAction((e) -&amp;gt; {
+    statemachine.getSCInterface().raisePlayPressed();
+  });
+  stopBtn.setOnAction((e) -&amp;gt; {
+    statemachine.getSCInterface().raiseStopPressed();
+  });
+  
+  // 3. Hook-up out-events
+  statemachine.getSCInterface().getListeners().add(new SCInterfaceListener() {
+    
+    @Override
+    public void onPlayBtnEnabledRaised(boolean value) {
+      playBtn.setDisable(!value);
+    }
+    
+    @Override
+    public void onStopBtnEnabledRaised(boolean value) {
+      stopBtn.setDisable(!value);
+    }
+  });
+  
+  // 4. Run the state machine
+  statemachine.enter();
+}
+&lt;/pre&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;We have added the full music player example to our example repository, which you can access from the example wizard &lt;em&gt;(New → Example… → YAKINDU Statechart Example)&lt;/em&gt;.&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/Deep%20Java%20integration%20for%20YAKINDU%20state%20machines/images/Deep-Java-integration-for-YAKINDU-state-machines-example-wizard.png?width=725&amp;amp;name=Deep-Java-integration-for-YAKINDU-state-machines-example-wizard.png" alt="Deep Java integration for YAKINDU state machines: example wizard" style="width: 725px;" width="725"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;h2&gt;What’s next to come&lt;/h2&gt; 
+&lt;p&gt;One of the features that we already have in our pipeline is dependency injection. With dependency injection, you will be able to annotate your statechart variables with &lt;code&gt;@Inject&lt;/code&gt;. This annotation will be reflected in the generated code, too. In that way, you can initialize the generated state machine by providing bindings for your variables.&lt;/p&gt; 
+&lt;p&gt;We also plan to improve the simulation view to better reflect the information you need for evaluating your system. This means, for example, that you will see the contents of collection variables more easily.&lt;/p&gt; 
+&lt;h2&gt;Installation&lt;/h2&gt; 
+&lt;p&gt;Since the deep Java integration is not yet officially released, you need to add it manually to your YAKINDU Statechart Tools installation. Please make sure you have the latest YAKINDU Statechart Tools Professional Edition installed. In your running application, go to &lt;i&gt;Help → Install New Software …&lt;/i&gt;, and select our release update site.&lt;/p&gt; 
+&lt;p&gt;Under the &lt;em&gt;Professional Edition&lt;/em&gt; category you will find the &lt;em&gt;YAKINDU Java Domain (Beta)&lt;/em&gt; entry. Follow the wizard's instructions to complete the installation. Please note that you need a license for the Professional Edition to make the deep Java integration work. If you are using YAKINDU Statechart Tools the first time, you will automatically receive a 1-month trial license. However, if you sign up for our beta testing programme, you will get 3 months for free!&lt;/p&gt; 
+&lt;h2&gt;Become a beta tester&lt;/h2&gt; 
+&lt;p&gt;If you are interested in trying out the deep Java integration feature, you can sign up for our beta testing program and receive the following benefits:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;Extended evaluation license for 3 months&lt;/li&gt; 
+ &lt;li&gt;Take part in shaping this feature by giving meaningful feedback&lt;/li&gt; 
+ &lt;li&gt;The best feedbacks will be honored with some goodies. ;)&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fdeep-java-integration-for-yakindu-state-machines&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <category>english</category>
+      <category>Software Development</category>
+      <pubDate>Thu, 07 Feb 2019 15:00:00 GMT</pubDate>
+      <author>kutz@itemis.de (Thomas Kutz)</author>
+      <guid>https://blogs.itemis.com/en/deep-java-integration-for-yakindu-state-machines</guid>
+      <dc:date>2019-02-07T15:00:00Z</dc:date>
+    </item>
+    <item>
+      <title>YAKINDU Statechart Tools January release 2019 – new and noteworthy</title>
+      <link>https://blogs.itemis.com/en/yakindu-statechart-tools-january-release-new-and-noteworthy</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/yakindu-statechart-tools-january-release-new-and-noteworthy" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/Xtext/whats-new.jpg" alt="whats-new" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;Today we released YAKINDU Statechart Tools Standard and Professional Editions in version 3.5.0. In total, 146 issues (Standard and Professional Edition) were fixed during the last 3 months. Moreover, we added a rich set of new and noteworthy features:&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;Today we released YAKINDU Statechart Tools Standard and Professional Editions in version 3.5.0. In total, 146 issues (Standard and Professional Edition) were fixed during the last 3 months. Moreover, we added a rich set of new and noteworthy features:&lt;/p&gt;  
+&lt;ul&gt; 
+ &lt;li&gt;Deep Java integration (YAKINDU Professional Edition)&lt;/li&gt; 
+ &lt;li&gt;Tracing callbacks for C++ and Java (YAKINDU Standard Edition)&lt;/li&gt; 
+ &lt;li&gt;Qt C++ code generator (YAKINDU Labs)&lt;/li&gt; 
+ &lt;li&gt;In-event queue for C++ code generator (YAKINDU Standard Edition)&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;h2&gt;Eclipse platform&lt;/h2&gt; 
+&lt;p&gt;We upgraded the underlying Eclipse platform to the new Eclipse 09-2018 release. &lt;strong&gt;This will be the last release of YAKINDU Statechart Tools that supports 32-bit versions&lt;/strong&gt; since the Eclipse Foundation decided to drop 32-bit with the &lt;a href="https://bugs.eclipse.org/bugs/show_bug.cgi?id=536766"&gt;12-2018 release&lt;/a&gt;.&lt;/p&gt; 
+&lt;p&gt;However, you will still be able to install YAKINDU Statechart Tools into an older 32-bit Eclipse version via our update site – only the bundled products won’t support 32-bit in the future.&lt;/p&gt; 
+&lt;h2&gt;Deep Java integration (beta)&lt;/h2&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog%20(2019)/Embedded/YSCT/YAKINDU%20Statechart%20Tools%20January%20release%20%E2%80%93%20new%20and%20noteworthy/YAKINDU%20Statechart%20Tools%20Deep%20Java%20Integration%20beta.png?width=970&amp;amp;name=YAKINDU%20Statechart%20Tools%20Deep%20Java%20Integration%20beta.png" alt="YAKINDU Statechart Tools Deep Java Integration beta" width="970" style="width: 970px;"&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;After more than a year of work, we are proud to present the first beta release of deep Java integration in YAKINDU Statechart Tools. It allows you to &lt;strong&gt;directly access Java APIs in your statechart&lt;/strong&gt;, and it hence facilitates an incorporation of state machine modeling in your Java development process. The beta version contains the following features:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;You can import Java classes, interfaces and enums in your statechart and use them for your statechart variables.&lt;/li&gt; 
+ &lt;li&gt;You can access all public and static members, like variables and methods directly from the statechart. This avoids lots of boilerplate code.&lt;/li&gt; 
+ &lt;li&gt;Java methods that are used in your statechart will be called during simulation. This avoids the cumbersome mocking of return values in the simulation view.&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;You can read more and watch a video in the following blog post:&lt;br&gt;&lt;a href="/en/statechart-modeling-for-java-development"&gt;https://blogs.itemis.com/en/statechart-modeling-for-java-development&lt;/a&gt;.&lt;/p&gt; 
+&lt;p&gt;If you are interested in testing the beta version, you can register as a beta tester here:&lt;br&gt;&lt;a href="https://info.itemis.com/en/yakindu/state-machine/beta/deep-java-integration/"&gt;https://info.itemis.com/en/yakindu/state-machine/beta/deep-java-integration&lt;/a&gt;.&lt;/p&gt; 
+&lt;h2&gt;Tracing callbacks for C++ and Java&lt;/h2&gt; 
+&lt;p&gt;The tracing feature enables the generation of tracing callback functions for Java and C++. We added a new feature to the generator model where you can configure the tracing events you are interested in:&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;feature Tracing {
+    enterState = true
+    exitState  = true
+}&lt;/pre&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;The &lt;code&gt;enterState&lt;/code&gt; parameter specifies whether to generate a callback function that is used to notify about state-entering events, and the &lt;code&gt;exitState&lt;/code&gt; parameter specifies whether to generate a callback that is used to notify about state-exiting events.&lt;/p&gt; 
+&lt;h2&gt;Qt C++ code generator&lt;/h2&gt; 
+&lt;p&gt;With the &lt;a href="/en/taking-scxml-to-the-next-level-with-yakindu-statechart-tools"&gt;SCXML domain&lt;/a&gt;, we already have a powerful and flexible way to integrate YAKINDU Statechart Tools into &lt;a href="https://www.qt.io/"&gt;Qt&lt;/a&gt; applications. But there are still use cases where you can’t use the Qt SCXML Interpreter. That is why we started the development of a Qt C++ code generator and released a first version via our YAKINDU labs update site.&lt;/p&gt; 
+&lt;p&gt;The Qt specific flavor of the C++ code generator makes use of Qt signals and slots. So the generated state machine can easily be integrated into Qt applications using this mechanism.&lt;/p&gt; 
+&lt;p&gt;The generated statemachine inherits from &lt;code&gt;QObject&lt;/code&gt;. A &lt;code&gt;QTimer&lt;/code&gt;-based implementation of a timer service is generated, if the statechart makes use of time triggers.&lt;br&gt;An &lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/examples/example/org.yakindu.sct.examples.trafficlight.cpp.qt"&gt;example of the Qt C++ code generator&lt;/a&gt; together with a simple QML user interface is available via our example wizard.&lt;/p&gt; 
+&lt;h2&gt;In-event queue support for C++ code generator&lt;/h2&gt; 
+&lt;p&gt;The C++ code generator now also supports an additional event queue for incoming events if the statechart is event-driven. To enable it, set the &lt;code&gt;inEventQueue&lt;/code&gt; option of the &lt;code&gt;GenerationOptions&lt;/code&gt; feature to &lt;code&gt;true&lt;/code&gt;.&lt;/p&gt; 
+&lt;p&gt;If an operation callback or function is executed by the state machine and that functions raises an event, this event will be appended to the in-event queue. The state machine's API will remain unchanged. After processing of the origin event is completed, all events in the in-events queue will be processed automatically in the order they were raised.&lt;/p&gt; 
+&lt;p&gt;To enable the in-event queue, add the following generator option to your &lt;code&gt;.sgen&lt;/code&gt; file:&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;feature GeneratorOptions {
+    inEventQueue = true
+}&lt;/pre&gt; 
+&lt;br&gt; 
+&lt;h2&gt;Miscellaneous&lt;/h2&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;We improved the generated code in terms of readability and removed superfluous parts (see issues &lt;a href="https://github.com/Yakindu/statecharts/issues/295"&gt;#295&lt;/a&gt; and &lt;a href="https://github.com/Yakindu/statecharts/issues/227"&gt;#227&lt;/a&gt;).&lt;/li&gt; 
+ &lt;li&gt;For the C code generator, the definition of &lt;code&gt;sc_null&lt;/code&gt; changed in &lt;code&gt;sc_types.h&lt;/code&gt; since the existing definition clashes with certain C compilers. &lt;strong&gt;You will have to regenerate the &lt;code&gt;sc_types.h&lt;/code&gt; file in your workspace to remove compile errors &lt;/strong&gt;(see issue&amp;nbsp;&lt;a href="https://github.com/Yakindu/statecharts/issues/2555"&gt;#2555&lt;/a&gt;).&lt;/li&gt; 
+ &lt;li&gt;We fixed several bugs in the SCXML domain and added a detection for endless loops for invalid models that contain dead locks.&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;You can update your existing version of YAKINDU Statechart Tools via &lt;strong&gt;Help → Check for updates&lt;/strong&gt; or download the latest version of YAKINDU Statechart Tools here:&lt;/p&gt; 
+&lt;p&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fyakindu-statechart-tools-january-release-new-and-noteworthy&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <category>english</category>
+      <pubDate>Tue, 22 Jan 2019 15:00:57 GMT</pubDate>
+      <author>andreas.muelder@itemis.de (Andreas Mülder)</author>
+      <guid>https://blogs.itemis.com/en/yakindu-statechart-tools-january-release-new-and-noteworthy</guid>
+      <dc:date>2019-01-22T15:00:57Z</dc:date>
+    </item>
+    <item>
+      <title>Introduction to model-based development for the upcoming generation</title>
+      <link>https://blogs.itemis.com/en/introduction-to-model-based-development-for-the-upcoming-generation</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/introduction-to-model-based-development-for-the-upcoming-generation" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/YAKINDU%20Statechart%20Tools/skool_makes_use_of_YAKINDU_Statechart_Tools.jpg" alt="skool_makes_use_of_YAKINDU_Statechart_Tools" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;The software YAKINDU Statechart Tools is primarily designed for software engineers who are developing systems based on state machines. For a good reason: design, simulation and verification of state machines can be combined in an excellent way.&lt;/p&gt; 
+&lt;p&gt;There are also other aspects of this software that different applications might take advantage of, like you can read below.&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;The software YAKINDU Statechart Tools is primarily designed for software engineers who are developing systems based on state machines. For a good reason: design, simulation and verification of state machines can be combined in an excellent way.&lt;/p&gt; 
+&lt;p&gt;There are also other aspects of this software that different applications might take advantage of, like you can read below.&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/skool_makes_use_of_YAKINDU_Statechart_Tools.jpg?width=725&amp;amp;name=skool_makes_use_of_YAKINDU_Statechart_Tools.jpg" alt="At Skool 8 to 18 years old girls are learning how to program with state machines and help of YAKINDU Statechart Tools" width="725" style="width: 725px;"&gt; 
+&lt;h2&gt;Teaching children statechart-based modeling&lt;/h2&gt; 
+&lt;p&gt;In our case, this different application was teaching children – girls between 8 and 18 years old – the secrets of statechart-based modeling and software development.&lt;/p&gt; 
+&lt;p&gt;Two of the &lt;strong&gt;biggest obstacles&lt;/strong&gt; any soon-to-be programmer must face are&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;adapting to the abstraction level of the development tool they are using and&lt;/li&gt; 
+ &lt;li&gt;learning the elements thereof.&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;For example, if we take C programming into account, not only should developers understand their program on the level of the C source code itself, but they would also need to be comfortable using functions, control flow modifiers, pointers, etc. These requirements result in a learning curve that is too steep for most people.&lt;/p&gt; 
+&lt;h2&gt;Lowering the hurdles to the world of programming&lt;/h2&gt; 
+&lt;p&gt;In contrast to this, the &lt;strong&gt;graphical user interface provided by YAKINDU Statechart Tools&lt;/strong&gt; (YAKINDU SCT) is not only easy to get used to, but also, through its modeling language, easier to understand for people who are not very comfortable with programming. The reason is that state-based modeling is very close to our everyday lives.&lt;/p&gt; 
+&lt;p&gt;Our specific use-case was designing a memory/"Simon says" game, using an ATmega328P chip in YAKINDU SCT, for which the participants assembled the peripherals (LEDs, buttons) on a breadboard in the second half of the workshop.&lt;/p&gt; 
+&lt;p&gt;&lt;strong&gt;The goal&lt;/strong&gt; was to build a working, playable game in about two hours, which of course is not much, especially with complete beginners in electronics as well as in programming.&lt;/p&gt; 
+&lt;h2&gt;Easy access to statechart-based development through YAKINDU Statechart Tools&lt;/h2&gt; 
+&lt;p&gt;That is why &lt;strong&gt;we needed a modeling tool&lt;/strong&gt; to realize the game, for which we created the necessary avr-c functions prior to the workshops so that the students did not need to bother with that part. Then we gave them a statechart that was missing necessary features to work: some transitions were missing, the triggers were not present and so on.&lt;/p&gt; 
+&lt;p&gt;Through this example, we introduced the basic &lt;strong&gt;concepts of statechart-based modeling&lt;/strong&gt;.&lt;/p&gt; 
+&lt;p&gt;After having developed the correct statechart (mainly by following instructions, but also by experimenting on their own, like customizing the number of levels in the game), we could &lt;strong&gt;simulate the outcome in YAKINDU SCT’s Simulation panel&lt;/strong&gt;, then generate all the necessary source code files to use in our final project.&lt;/p&gt; 
+&lt;h2&gt;Experiences with statecharts shaping future generations of software developers&lt;/h2&gt; 
+&lt;p&gt;After assembling the physical device itself, students had the possibility to play with their very own device they programmed – which we hope will be a meaningful moment to remember later, when they might be working or studying in a field that is somehow related to &lt;strong&gt;statechart-based modeling&lt;/strong&gt;.&lt;/p&gt; 
+&lt;p&gt;Time was really an issue during the workshops. Initially, we planned the workshop to fit in into 2 hours, then extended it to 2.5 hours. We hope to take part in a similar occasion in the future with more time to have at our disposal.&lt;/p&gt; 
+&lt;p&gt;At such an event, the entire software development workflow might be introduced to students, complete with the design of more abstraction levels, such as defining use cases, writing down features, etc.&lt;/p&gt; 
+&lt;p&gt;Finally, the workshop could arrive at the statechart-based realization of the software. As a result, the concept and importance of modeling, being an important ingredient in the software development workflow, will remain in the students' minds. Therefore the next generation of software engineers will have this opportunity at hand.&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fintroduction-to-model-based-development-for-the-upcoming-generation&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>english</category>
+      <category>Software Development</category>
+      <pubDate>Tue, 15 Jan 2019 16:00:10 GMT</pubDate>
+      <author>eszter@skool.org.hu (Skool Team)</author>
+      <guid>https://blogs.itemis.com/en/introduction-to-model-based-development-for-the-upcoming-generation</guid>
+      <dc:date>2019-01-15T16:00:10Z</dc:date>
+    </item>
+    <item>
+      <title>Statechart modeling for Java development</title>
+      <link>https://blogs.itemis.com/en/statechart-modeling-for-java-development</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/statechart-modeling-for-java-development" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/statechart_modeling_for_java_developing-feature_preview-example.jpg" alt="statechart_modeling_for_java_developing-feature_preview-example" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;In this blog post I want to give you a short teaser for an upcoming feature of YAKINDU Statechart Tools: The deep Java integration. This extension allows you to directly access Java APIs in your statechart and it hence simplifies an incorporation of state machine modeling in your Java development process.&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;In this blog post I want to give you a short teaser for an upcoming feature of YAKINDU Statechart Tools: The deep Java integration. This extension allows you to directly access Java APIs in your statechart and it hence simplifies an incorporation of state machine modeling in your Java development process.&lt;/p&gt; 
+&lt;p&gt;&lt;a href="https://info.itemis.com/state-machine/download-yakindu-statechart-tools"&gt;If you haven't downloaded YAKINDU Statechart Tools yet, just click this link. You'll be able to test our tool 30 days free of charge.&lt;/a&gt;&lt;/p&gt; 
+&lt;p&gt;Indeed, as &lt;strong&gt;YAKINDU Statechart Tools&lt;/strong&gt; itself is written in Java, this direct &lt;strong&gt;integration with Java APIs&lt;/strong&gt; allows us to express parts of our software with its own state machines. The implementation is based on the concept of domains and works similar to what we have already done for &lt;strong&gt;C/C++&lt;/strong&gt; development or the state machine description language &lt;strong&gt;SCXML&lt;/strong&gt;.&lt;/p&gt; 
+&lt;p&gt;&lt;strong&gt;Deep Java integration&lt;/strong&gt; is currently work in progress. A first beta version will be released in January 2019 and will contain the following features:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;Importing Java classes, interfaces and enums into your statechart&lt;/li&gt; 
+ &lt;li&gt;Creating variables of imported Java classes/enums&lt;/li&gt; 
+ &lt;li&gt;Accessing public members, like variables and methods&lt;/li&gt; 
+ &lt;li&gt;Calling Java APIs during simulation&lt;/li&gt; 
+ &lt;li&gt;Generating Java code&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;However, since a video shows more than a thousand words, please see here what is currently possible with the &lt;strong&gt;Java domain&lt;/strong&gt;:&lt;/p&gt; 
+&lt;p&gt;&lt;iframe src="https://www.youtube-nocookie.com/embed/iSG2s_eUZUs?modestbranding=1&amp;amp;rel=0" width="720" height="405" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;&lt;/p&gt; 
+&lt;br&gt; 
+&lt;p&gt;The example you see in the video is taken from our “&lt;a href="https://info.itemis.com/events/coding-kumite/dortmund/"&gt;coding kumite&lt;/a&gt;”, a variation of a coding dojo in which participants team up and compete against each other by solving coding tasks.&lt;/p&gt; 
+&lt;p&gt;The aim was to develop an &lt;strong&gt;autonomous agent&lt;/strong&gt; that is able to survive as long as possible by either shooting or dodging the incoming asteroids and enemy ships. The &lt;strong&gt;ship in the video is fully controlled by the statechart&lt;/strong&gt; on the right!&lt;/p&gt; 
+&lt;p&gt;Want to play around with YAKINDU Statechart Tools and deep Java integration on your own? If you are interested in becoming a &lt;strong&gt;beta tester for our new deep Java integration&lt;/strong&gt; feature, just get in contact:&lt;br&gt;&lt;br&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fstatechart-modeling-for-java-development&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>english</category>
+      <category>Software Development</category>
+      <pubDate>Mon, 17 Dec 2018 14:45:00 GMT</pubDate>
+      <author>kutz@itemis.de (Thomas Kutz)</author>
+      <guid>https://blogs.itemis.com/en/statechart-modeling-for-java-development</guid>
+      <dc:date>2018-12-17T14:45:00Z</dc:date>
+    </item>
+    <item>
+      <title>Robot control by YAKINDU Statechart Tools: Leading state machine software supports Club Robotique La Garenne</title>
+      <link>https://blogs.itemis.com/en/robot-control-by-yakindu-statechart-tools-leading-state-machine-software-supports-club-robotique-la-garenne</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/robot-control-by-yakindu-statechart-tools-leading-state-machine-software-supports-club-robotique-la-garenne" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/YAKINDU/YAKINDU-Logo-Sticker.jpg" alt="YAKINDU-Logo-Sticker" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Time and time again we’re amazed by the various use cases in which YAKINDU Statechart Tools comes into operation. Recently we presented Pinewood Car race, where the lightings of one of the cars were controlled with YAKINDU Statechart Tools. Now, we’d like to present another competition – the French Cup of Robotics at &lt;/span&gt;&lt;a href="http://www.eurobot.org/"&gt;&lt;span style="font-weight: 400;"&gt;EUROBOT 2018&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; on the 12th of May. One of the teams uses YAKINDU Statechart Tools to control their robots. Below, they present their task and work.&lt;/span&gt;&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Time and time again we’re amazed by the various use cases in which YAKINDU Statechart Tools comes into operation. Recently we presented Pinewood Car race, where the lightings of one of the cars were controlled with YAKINDU Statechart Tools. Now, we’d like to present another competition – the French Cup of Robotics at &lt;/span&gt;&lt;a href="http://www.eurobot.org/"&gt;&lt;span style="font-weight: 400;"&gt;EUROBOT 2018&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; on the 12th of May. One of the teams uses YAKINDU Statechart Tools to control their robots. Below, they present their task and work.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Club Robotique La Garenne (CRLG) is a robotics club that participates in &lt;/span&gt;&lt;a href="http://www.coupederobotique.fr/"&gt;&lt;span style="font-weight: 400;"&gt;the French Cup of Robotics&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; each year. The principle is simple, two robots circulate on a surface of 2 m to 3 m and carry out a variety of actions to gain points. Whichever has the most points wins the game. The actions can be as simple as pushing a ball or as complicated as sorting balls according to colors and ballistic shooting to deposit them in a remote receptacle.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;All this is done autonomously: Once the match is started, the robot operates on its own. It uses its sensors, its actuators, and its main program to perform its actions or to roll out a strategy based on the actions of the opposing robot.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The electronic architecture of CRLG's robot is quite simple. An &lt;/span&gt;&lt;a href="https://www.mbed.com/en/"&gt;&lt;span style="font-weight: 400;"&gt;MBED&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; PCB (with an ARM microprocessor) is integrated in a homemade PCB that retrieves and formats the signals from the sensors and sends the instructions to the actuators (PWM, TTL, I2C, RS232, etc.).&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The informatics side is based on a strategy developed with &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt;. In return, several service functions employ this strategy.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;At the highest level, it's a simple scheduler:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;table&gt; 
+ &lt;tbody&gt; 
+  &lt;tr&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;strong&gt;Scheduling&lt;/strong&gt;&lt;/p&gt; &lt;/td&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;strong&gt;Tasks&lt;/strong&gt;&lt;/p&gt; &lt;/td&gt; 
+  &lt;/tr&gt; 
+  &lt;tr&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;10 ms&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Set servos values.&lt;/span&gt;&lt;/p&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Receive messages from PC or a Raspberry Pi, if one is connected&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+  &lt;/tr&gt; 
+  &lt;tr&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;20 ms&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Get sensors value.&lt;/span&gt;&lt;/p&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Process the servomechanism (moving the robot)&lt;/span&gt;&lt;/p&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Run the “YAKINDU task”:&amp;nbsp;&lt;/span&gt;&lt;em style="background-color: transparent;"&gt;runCycle()&amp;nbsp;&lt;/em&gt;&lt;span style="background-color: transparent;"&gt;(the code is generated by YAKINDU Statechart Tools for a cycle-based execution scheme)&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+  &lt;/tr&gt; 
+  &lt;tr&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;200 ms&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+   &lt;td&gt; &lt;p&gt;&lt;span style="font-weight: 400;"&gt;Send messages to PC or a Raspberry Pi, if one is connected.&lt;/span&gt;&lt;/p&gt; &lt;/td&gt; 
+  &lt;/tr&gt; 
+ &lt;/tbody&gt; 
+&lt;/table&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;For the strategy, we use the C++ class generated by YAKINDU Statechart Tools’ C++ generator. The implementation of the interface of this class is available on the &lt;/span&gt;&lt;a href="https://github.com/CRLG/GROSBOT_MBED"&gt;&lt;span&gt;CRLG GitHub page&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;. and mainly focuses on the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;Cmatch.cpp&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; file; comments are mainly in French.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;For some cases, we run YAKINDU Statechart Tools on Windows 10, but mostly on Ubuntu 16.04 LTS with the GNU gcc compiler, which is included in the package named &lt;/span&gt;&lt;a href="https://github.com/adamgreen/gcc4mbed"&gt;&lt;span style="font-weight: 400;"&gt;GCC4MBED&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The first thing that convinced us to use YAKINDU Statechart Tools is its complete implementation of finite state machines (FSM) with history states and parallel execution events. We also appreciated the automatic and fast generation of code, which allows us to drastically reduce the development time spent on the &amp;nbsp;robots. This is especially important because the competition lasts only three days, and every second is precious. Additionally, YAKINDU Statechart Tools has a lot of valuable features that will certainly allow us to be even more successful. One of them is the simulation feature.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;If you're interested please find an example of a match&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&amp;nbsp;available on our &lt;a href="https://www.youtube.com/watch?v=ACaHmEX4wT4&amp;amp;feature=youtu.be"&gt;YouTube channel&lt;/a&gt;.&lt;/span&gt;&lt;/p&gt; 
+&lt;iframe src="https://www.youtube-nocookie.com/embed/ACaHmEX4wT4?rel=0" width="560" height="315" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt; 
+&lt;p&gt;&lt;strong style="background-color: transparent;"&gt;&lt;br&gt;Our club:&lt;/strong&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Bichon&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: President of the club. He is distinguished by the use of Légo© to make robots.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Nico&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: He is not only a developer, but also our electronics master. He's the one who introduced us to YAKINDU Statechart Tools.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Laurent&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: Our mechanics and cinematics specialist who designed and built rather impressive assemblies, e.g. coders on suspensions printed in 3D.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Guigui&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: Our regulators specialist. He knows how to set a PID by ? it. You can have a glimpse of his art in the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;CAsservissement.cpp&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; file.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Alexis&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: He particularly likes metal shavings, without him the lathe of the club would be only an ordinary dust collector.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Doudou&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: Like the president, he remains passionate about the union between Lego and robotics.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li&gt;&lt;strong style="background-color: transparent;"&gt;Laguiche&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;: A little touch to everything, he works mainly in the development and video recognition.&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;If you have any fun project realized with YAKINDU Statechart Tools just contact us – we're excited to hear how you work with YSCT. And if you want to try it just download the newest version.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;/span&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Frobot-control-by-yakindu-statechart-tools-leading-state-machine-software-supports-club-robotique-la-garenne&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>english</category>
+      <pubDate>Fri, 19 Oct 2018 13:07:00 GMT</pubDate>
+      <author>svenja.wendler@itemis.de (Svenja Wendler)</author>
+      <guid>https://blogs.itemis.com/en/robot-control-by-yakindu-statechart-tools-leading-state-machine-software-supports-club-robotique-la-garenne</guid>
+      <dc:date>2018-10-19T13:07:00Z</dc:date>
+    </item>
+    <item>
+      <title>Searching in state machines with YAKINDU Statechart Tools</title>
+      <link>https://blogs.itemis.com/en/searching-in-state-machines-with-yakindu-statechart-tools</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/searching-in-state-machines-with-yakindu-statechart-tools" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/YAKINDU%20Statechart%20Tools/Lupe-Suche-Preview.jpg" alt="Lupe-Suche-Preview" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;&lt;span style="font-weight: 400; background-color: transparent;"&gt;The larger the state machine, the greater the need to quickly search for elements – for example, to find a certain state or to find all occurrences of a certain variable or event. YAKINDU Statechart Tools provides this functionality and this blog post shows how to make the most use out of it.&lt;/span&gt;&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;&lt;span style="font-weight: 400; background-color: transparent;"&gt;The larger the state machine, the greater the need to quickly search for elements – for example, to find a certain state or to find all occurrences of a certain variable or event. YAKINDU Statechart Tools provides this functionality and this blog post shows how to make the most use out of it.&lt;/span&gt;&lt;/p&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;When searching for state machine elements one can distinguish between the two following scenarios:&lt;/span&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Search based on a certain name pattern&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Example: search for all states with prefix &lt;em&gt;error&lt;/em&gt;&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;br&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Search for all references of a certain element&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Example: search for all transitions that have the event &lt;em&gt;switchOff&lt;/em&gt; as trigger&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Let’s see how we can accomplish both tasks with YAKINDU Statechart Tools.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Text based model search&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Searching for text occurrences in statechart is as simple as searching for text in a text file. Just press [Ctrl+H] or open the search dialog via the menu &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Search -&amp;gt; Search…&lt;/span&gt;&lt;/i&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In the search dialog, switch to the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Statechart Search&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; tab:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/01-YAKINDU-Statechart-Tools-Model-Search-Tab.png?width=618&amp;amp;name=01-YAKINDU-Statechart-Tools-Model-Search-Tab.png" alt="01-YAKINDU-Statechart-Tools-Model-Search-Tab" width="618" style="width: 618px; display: block; margin-left: auto; margin-right: auto;"&gt;
+&lt;br&gt;
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The model search allows you to use regular expressions and to filter for the kind of elements you want to search for. You can also define whether you want to search in the whole workspace or just in the selected statechart model.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Once the search is performed, its results are listed in the search view. With a double click on one of the search results, you can quickly navigate to the corresponding statechart element.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/02-YAKINDU-Statechart-Tools-navigate-search.png?width=459&amp;amp;name=02-YAKINDU-Statechart-Tools-navigate-search.png" alt="02-YAKINDU-Statechart-Tools-navigate-search" width="459" style="width: 459px; display: block; margin-left: auto; margin-right: auto;"&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;However, this still needs two steps: (1) search for the desired element and (2) switch to the search view and double click on the element. For simple navigation tasks, you can use the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;Model Navigation&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; dialog. To open the navigation dialog, just press &lt;/span&gt;&lt;strong style="background-color: transparent;"&gt;[Ctrl+Shift+Q]&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;. In the text field, type in the name of the desired model element; you can also use wildcards like “*”. The dialog directly shows fitting targets where you can navigate to with a double click.&lt;/span&gt;&lt;/p&gt; 
+&lt;br&gt;
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/03-YAKINDU-Statechart-Tools-Navigate-to.Model-Element.png?width=603&amp;amp;name=03-YAKINDU-Statechart-Tools-Navigate-to.Model-Element.png" alt="03-YAKINDU-Statechart-Tools-Navigate-to.Model-Element" width="603" style="width: 603px; display: block; margin-left: auto; margin-right: auto;"&gt;
+&lt;br&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Reference based model search&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The second scenario is to search for all references of an element. You can find this option in the context menu, for example, when selecting a variable in the definition section. The &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Find References&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; action searches for all occurrences of exactly this variable. This means that other elements with the same name will not be found. The results are listed again in the same view as for the text based statechart search.&lt;/span&gt;&lt;/p&gt; 
+&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/04-YAKINDU-Statechart-Tools-Find-References.png?width=227&amp;amp;name=04-YAKINDU-Statechart-Tools-Find-References.png" alt="04-YAKINDU-Statechart-Tools-Find-References" width="227" style="width: 227px; display: block; margin-left: auto; margin-right: auto;"&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Acknowledgements&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;At this point we want to thank our former intern Abdullah Tasman who mainly implemented the hereby introduced features as part of his student internship.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Do you want to learn more about YAKINDU Statechart Tools? Give it a try!&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;/span&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fsearching-in-state-machines-with-yakindu-statechart-tools&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <category>english</category>
+      <pubDate>Thu, 11 Oct 2018 13:00:00 GMT</pubDate>
+      <author>kutz@itemis.de (Thomas Kutz)</author>
+      <guid>https://blogs.itemis.com/en/searching-in-state-machines-with-yakindu-statechart-tools</guid>
+      <dc:date>2018-10-11T13:00:00Z</dc:date>
+    </item>
+    <item>
+      <title>Taking SCXML to the next level</title>
+      <link>https://blogs.itemis.com/en/taking-scxml-to-the-next-level-with-yakindu-statechart-tools</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/taking-scxml-to-the-next-level-with-yakindu-statechart-tools" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/Stockmaterial_allgemein/next-level.jpg" alt="next-level" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;SCXML is a file format to describe state machines. Although it's widely used, there's a lack of good tool support. If you not only want a graphical editor for your statechart but also SCXML compliant verification, simulation and means to write unit tests, &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;then you should read this blog post on how to take SCXML modeling to the next level.&lt;/span&gt;&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;&lt;span style="font-weight: 400;"&gt;SCXML is a file format to describe state machines. Although it's widely used, there's a lack of good tool support. If you not only want a graphical editor for your statechart but also SCXML compliant verification, simulation and means to write unit tests, &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;then you should read this blog post on how to take SCXML modeling to the next level.&lt;/span&gt;&lt;/p&gt;  
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;What is State Chart XML, and what is it good for ?&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;SCXML, short for &lt;/span&gt;&lt;strong&gt;S&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;tate&lt;/span&gt;&lt;strong&gt; C&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;hart &lt;/span&gt;&lt;strong&gt;XML&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;, is a statechart interchange format. It is based on XML and has been &lt;/span&gt;&lt;a href="https://www.w3.org/TR/scxml/"&gt;&lt;span style="font-weight: 400;"&gt;standardized by the W3C&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;.&lt;/span&gt; &lt;span style="font-weight: 400;"&gt;The SCXML standardization is an important advantage because it makes statecharts highly portable and independent of a particular implementation. The prerequisite is of course that the respective execution environment corresponds to the SCXML specification.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The &lt;/span&gt;&lt;a href="https://www.w3.org/TR/scxml/"&gt;&lt;span style="font-weight: 400;"&gt;current version of the specification&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; was released by the &lt;/span&gt;&lt;a href="https://en.wikipedia.org/wiki/SCXML#cite_note-1"&gt;&lt;span style="font-weight: 400;"&gt;W3C in September 2015&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;. A “hello world” in SCXML looks like this:&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint lang-xml"&gt;&amp;lt;scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="hello"&amp;gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; &amp;nbsp;&amp;lt;final id="hello"&amp;gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;lt;onentry&amp;gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;lt;log expr="'hello world'" /&amp;gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;lt;/onentry&amp;gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; &amp;nbsp;&amp;lt;/final&amp;gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&amp;lt;/scxml&amp;gt;&lt;/span&gt;&lt;/pre&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;SCXML is an exchange format for Harel statecharts. The XML defines all the states, transitions, events and variables used in the state machine. Besides the state machine’s structural elements, the SCXML standard also defines the execution semantics of that state machine. And this is one of the biggest advantages of SCXML – the same statechart model can run on different SCXML engines on different platforms and it always behaves in exactly the same way – as long as the engines conform to the specified execution semantics.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;SCXML is supported on nearly all platforms. For Java, &lt;/span&gt;&lt;a href="https://commons.apache.org/proper/commons-scxml/"&gt;&lt;span style="font-weight: 400;"&gt;Apache Commons SCXML&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; is the most popular SCXML Engine. There are even SCXML engines written in JavaScript to be used in web applications, like &lt;/span&gt;&lt;a href="https://github.com/jbeard4/SCION"&gt;&lt;span style="font-weight: 400;"&gt;SCION&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;. Another very popular platform that uses SCXML for Human Machine Interfaces is the &lt;/span&gt;&lt;a href="https://doc.qt.io/qt-5.9/qtscxml-overview.html"&gt;&lt;span style="font-weight: 400;"&gt;SCXML Interpreter for Qt&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;. &lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;What is the benefit of using YAKINDU Statechart Tools?&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;SCXML is an interchange format for machines and not a first-level programming language to be used by humans. Like many other XML formats, it is quite hard to read and even harder to write by hand. That said, &lt;strong&gt;good tool support is essential when working with SCXML&lt;/strong&gt;. The Qt Creator provides a &lt;/span&gt;&lt;a href="https://doc.qt.io/qtcreator/creator-scxml.html"&gt;&lt;span style="font-weight: 400;"&gt;simple graphical editor&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; for SCXML documents. This is a big advantage in contrast to writing State Chart XML by hand.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Besides a graphical editor, &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt;’ &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;so-called &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;SCXML domain &lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;provides a rich feature set that allows &lt;strong&gt;higher-level modeling&lt;/strong&gt;, &lt;strong&gt;interactive simulation&lt;/strong&gt; and &lt;strong&gt;unit testing of SCXML statecharts&lt;/strong&gt;.&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;&amp;nbsp;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;When using the SCXML domain, everything will by &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;fully compliant with&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; the SCXML standard. We adopted the built-in simulation engine to reflect the SCXML execution semantics, and of course the SCTUnit framework also supports the SCXML standard. Thus, you can be sure that your SCTUnit test results exactly reflect the behavior of the SCXML engine of your choice.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="background-color: transparent;"&gt;&lt;br&gt;Let’s have a look at the feature set now.&lt;/span&gt;&lt;/p&gt; 
+&lt;h3&gt;&lt;span style="font-weight: 400;"&gt;Higher-level modeling concepts&lt;/span&gt;&lt;/h3&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Harel statecharts in general support certain higher-level features like &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;choices&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;, &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;synchronization, time trigger &lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;named entry &lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;exit points&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. These concepts are extremely useful but SCXML does not support them out of the box. The YAKINDU code generator circumvents this restriction by transforming such higher-level concepts into basic SCXML.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;For example, the YAKINDU statechart language has first-level support for time triggers. Take the following statechart that increments an integer value every second:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/StateA-Statechart.png?width=266&amp;amp;name=StateA-Statechart.png" alt="SCXML with YAKINDU Statechart Tools - StateA-Statechart" width="266" style="width: 266px;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;In SCXML, we can specify an equivalent statechart as follows:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint lang-xml"&gt;&amp;lt;?xml version="1.0" encoding="UTF-8"?&amp;gt;
+&amp;lt;scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" datamodel="ecmascript" name="StateTimeTriggerAfter" initial="StateA"&amp;gt;
+    &amp;lt;datamodel&amp;gt;
+        &amp;lt;data expr="0" id="value" /&amp;gt;
+    &amp;lt;/datamodel&amp;gt;
+    &amp;lt;state id="main_region"&amp;gt;
+        &amp;lt;state id="StateA"&amp;gt;
+            &amp;lt;onentry&amp;gt;
+                &lt;strong&gt;&amp;lt;send event="StateA_timeEvent_0" delay="1s"/&amp;gt;&lt;/strong&gt;
+            &amp;lt;/onentry&amp;gt;
+            &amp;lt;transition event="StateA_timeEvent_0" cond=""&amp;gt;
+                &amp;lt;assign location="value" expr="value + 1"/&amp;gt;
+                &lt;strong&gt;&amp;lt;send event="StateA_timeEvent_0" delay="1s"/&amp;gt;&lt;/strong&gt;
+            &amp;lt;/transition&amp;gt;
+            &amp;lt;onexit&amp;gt;
+                &lt;strong&gt;&amp;lt;cancel sendid="StateA_timeEvent_0" /&amp;gt;&lt;/strong&gt;
+            &amp;lt;/onexit&amp;gt;
+        &amp;lt;/state&amp;gt;
+    &amp;lt;/state&amp;gt;
+&amp;lt;/scxml&amp;gt;
+&lt;/pre&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;As you can see, the simple time trigger is reflected in multiple parts of the SCXML. We have to send a delayed event when entering the state, we have to send the same event in the state’s self-transition and we have to cancel the event when exiting the state. Changing the timing from 1 s to something else means to change two parts of the SCXML. This is error-prone when done manually. And this is just a very simple example. The same applies to &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;choices&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;, &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;synchronization, time trigger &lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;named entry &lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;exit points.&lt;/span&gt;&lt;/i&gt;&lt;span style="background-color: transparent;"&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Interactive simulation of SCXML models&lt;br&gt;&lt;br&gt;&lt;/span&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;With YAKINDU Statecharts Tools, models can be executed directly in the simulator. The following example was taken from the &lt;/span&gt;&lt;a href="https://doc.qt.io/qt-5/qtscxml-trafficlight-widgets-dynamic-example.html"&gt;&lt;span style="font-weight: 400;"&gt;Qt examples&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; and modeled with YAKINDU Statechart Tools. With the YAKINDU simulation engine, which uses &lt;/span&gt;&lt;a href="https://commons.apache.org/proper/commons-scxml/"&gt;&lt;span style="font-weight: 400;"&gt;Apache Commons SCXML&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; under the hood, you can directly execute your model to check if it behaves as expected. You can interactively raise events and inspect variable values in the simulation view.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools.png?width=724&amp;amp;name=YAKINDU-Statechart-Tools.png" alt="SCXML with YAKINDU Statechart Tools" width="724" style="width: 724px;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;h3&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;br&gt;Unit testing SCXML statecharts&lt;/span&gt;&lt;/h3&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;We also adopted our testing framework SCTUnit to work with SCXML models. For Qt, there is even an SCTUnit code generator that generates a C++ test suite from the test specification.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-C++-test-suite.png?width=724&amp;amp;name=YAKINDU-Statechart-Tools-C++-test-suite.png" alt="SCXML with YAKINDU Statechart Tools - C++-test-suite" width="724" style="width: 724px;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Get everything up and running&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;If you are new to YAKINDU Statechart Tools, you can &lt;strong&gt;&lt;a href="https://info.itemis.com/state-machine/download-yakindu-statechart-tools"&gt;download a 30-day trial version here&lt;/a&gt;&lt;/strong&gt; or with one click on the banner below. &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;To see everything in action, we have added an example to our example wizard. &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;It contains the traffic light statechart, which is transformed into an SCXML file on the fly. Additionally, the example comes with some Qt code, so you can run it in your Qt environment and see the traffic light in action. You can edit, simulate and test the statechart in the same way as you would do with a “normal” YAKINDU statechart. To add this example to your workspace, select &lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;File -&amp;gt; New -&amp;gt; Example -&amp;gt; YAKINDU Statechart Examples. Select the “Traffic Light (SCXML) for QT” example and press &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Finish&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-Trafficlight-example.png?width=724&amp;amp;name=YAKINDU-Statechart-Tools-Trafficlight-example.png" alt="SCXML with YAKINDU Statechart Tools - Trafficlight example" width="724" style="width: 724px;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="background-color: transparent;"&gt;&lt;br&gt;Don’t forget to provide us some feedback in the comment section of our blog or via our &lt;a href="https://groups.google.com/forum/#!forum/yakindu-user"&gt;user group&lt;/a&gt;!&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Ftaking-scxml-to-the-next-level-with-yakindu-statechart-tools&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>english</category>
+      <pubDate>Wed, 29 Aug 2018 12:15:00 GMT</pubDate>
+      <author>andreas.muelder@itemis.de (Andreas Mülder)</author>
+      <guid>https://blogs.itemis.com/en/taking-scxml-to-the-next-level-with-yakindu-statechart-tools</guid>
+      <dc:date>2018-08-29T12:15:00Z</dc:date>
+    </item>
+    <item>
+      <title>New and noteworthy: YAKINDU Statechart tools august release</title>
+      <link>https://blogs.itemis.com/en/new-and-noteworthy-yakindu-statechart-tools-august-release</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/new-and-noteworthy-yakindu-statechart-tools-august-release" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/Xtext/whats-new.jpg" alt="whats-new" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;Today we released YAKINDU Statechart Tools Standard and Professional Edition in version 3.4.0. Among several bug fixes, the 3.4.0 release comes with a pile of new cool features:&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;Today we released YAKINDU Statechart Tools Standard and Professional Edition in version 3.4.0. Among several bug fixes, the 3.4.0 release comes with a pile of new cool features:&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;strong&gt;Model Search&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; (Standard and Professional Edition):&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;You can now search for statechart elements; even better, you can search for references of events, variables and so on.&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;strong&gt;SCXML Domain&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; (Professional Edition):&lt;br&gt;&lt;/span&gt;The &lt;a href="https://www.w3.org/TR/scxml/"&gt;&lt;span&gt;SCXML &lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;domain allows to generate SCXML files from your statechart. Also, the statechart execution semantics during simulation is the same as specified in the SCXML Standard. And of course you can use SCTUnit for testing out of the box.&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;strong&gt;SCTUnit for C Domain&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; (Professional Edition):&lt;br&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt;You can now use the SCTUnit testing framework together with C domain statecharts, i.e. in your unit tests you can access all C elements which your statechart can access via its imported header files.&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/Xtext/whats-new.jpg?width=970&amp;amp;name=whats-new.jpg" alt="whats-new" width="970" style="width: 970px;"&gt;&lt;/span&gt;&lt;/h2&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Model Search&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The larger the model, the greater the need to quickly search for elements, for example, all states with a given name resp. name pattern, all occurrences of a certain variable etc. This is now possible with the new model search integrated in the Eclipse search dialog:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-August-Release-Model-Search.png?width=588&amp;amp;name=YAKINDU-Statechart-Tools-August-Release-Model-Search.png" alt="YAKINDU-Statechart-Tools-August-Release-Model-Search" width="588" style="width: 588px; display: block; margin-left: auto; margin-right: auto;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;The model search allows you to use regular expressions and to filter for the kind of elements you want to search for. Once the search is performed, its results are listed in the search view where you can quickly navigate to the corresponding statechart elements.&lt;/span&gt;&lt;span style="background-color: transparent;"&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;A similar but slightly different use case is to search for all references of an element. You can find this option now in the context menu. The results will be listed in the same view as for the standard model search.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-August-Release-Find-References.png?width=317&amp;amp;name=YAKINDU-Statechart-Tools-August-Release-Find-References.png" alt="YAKINDU-Statechart-Tools-August-Release-Find-References" width="317" style="width: 317px; display: block; margin-left: auto; margin-right: auto;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;SCXML Domain&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;This version of &lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;YAKINDU Statechart Tools&lt;/a&gt; comes with an SCXML domain made to facilitate generating SCXML files from YAKINDU statecharts. SCXML, short for &lt;/span&gt;&lt;strong&gt;S&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;tate&lt;/span&gt;&lt;strong&gt;c&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;hart &lt;/span&gt;&lt;strong&gt;XML&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt;, is a statechart interchange format based on XML, &lt;/span&gt;&lt;a href="https://www.w3.org/TR/scxml/"&gt;&lt;span style="font-weight: 400;"&gt;standardized by the W3C.&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; All states, events, variables and so on are defined in the XML. SCXML relies on external engines to execute the statechart according to the standard, which allows a statechart defined in SCXML to be highly portable. Like other XML based formats, it is only an interchange format and hence not really suitable for direct editing.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;YAKINDU Statechart Tools Professional Edition with its SCXML domain allows you to design and verify statecharts exactly according to the SCXML standard. The built-in simulation engine of YAKINDU Statechart Tools Professional Edition was adopted to reflect the execution semantics of SCXML correctly. And of course, the SCTUnit framework takes the SCXML domain into account as well, so you can be sure that the test results reflect the behavior of the SCXML engine of your choice.&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;To see everything in action we have added an example to our example wizard. This example &lt;/span&gt;&lt;span style="font-weight: 400;"&gt;was taken from the &lt;/span&gt;&lt;a href="https://doc.qt.io/qt-5/qtscxml-trafficlight-widgets-dynamic-example.html"&gt;&lt;span style="font-weight: 400;"&gt;Qt examples&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; and modeled with YAKINDU Statechart Tools. It contains a traffic light statechart which is on-the-fly transformed into an SCXML file. You can edit, simulate and test the statechart as you are used to in YAKINDU. Additionally, the example comes with some Qt code, so you can run it in your Qt environment and see the traffic light in action.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-August-Release-Example-Wizard.png?width=1089&amp;amp;name=YAKINDU-Statechart-Tools-August-Release-Example-Wizard.png" alt="YAKINDU-Statechart-Tools-August-Release-Example-Wizard" width="1089" style="width: 1089px;"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Speaking of our example wizard, we also put some effort here to provide a cleaner, more structured appearance. You should give it a try and get inspired by our increasing amount of examples!&lt;br&gt;&lt;/span&gt;&lt;span style="background-color: transparent;"&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;SCTUnit for C Domain&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;We have adopted our testing framework SCTUnit to also work with C domain statecharts. This means, you can now write unit tests for your C statecharts in SCTUnit, execute them, and also generate GTests, for execution on a build server, for example.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In SCTUnit you can easily mock the environment your state machine is interacting with by raising events or mocking operation results and then verify corresponding state changes or outgoing events. When writing SCTUnit tests for your C statechart you can access all C elements (variables, operations, datastructures) that are also made accessible in your C statechart by the imported header files.&lt;/span&gt;&lt;span style="background-color: transparent;"&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;We have added an SCTUnit test suite to our coffee machine example which you can find in our example wizard. Executing the test suite will also reveal our coverage view showing you which states and transitions have been covered by your tests.&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-August-Release-SCTUnit.png?width=1012&amp;amp;name=YAKINDU-Statechart-Tools-August-Release-SCTUnit.png" alt="YAKINDU-Statechart-Tools-August-Release-SCTUnit" width="1012" style="width: 1012px;"&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&amp;nbsp;&lt;/p&gt; 
+&lt;p&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Miscellaneous&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Apart from these new features we also worked on many smaller improvements, bug fixes and better performance:&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;strong&gt;&lt;br&gt;Usability:&lt;/strong&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Added a new page to the statechart creation wizard that shows a description text for the selected statechart domain, so you can better understand what this domain stands for (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2097"&gt;&lt;span style="font-weight: 400;"&gt;#2097&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Improved error message when generator model refers to non-existing statechart (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/"&gt;&lt;span style="font-weight: 400;"&gt;#2117&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Show error message if region contains an unnamed and a 'default' named entry (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2051"&gt;&lt;span style="font-weight: 400;"&gt;#2051&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Add validations and content assist for entry/exit points (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2088"&gt;&lt;span style="font-weight: 400;"&gt;#2088&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;, &lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2068"&gt;&lt;span style="font-weight: 400;"&gt;#2068&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;New statecharts will be now annotated with @EventDriven and @ChildFirstExecution per default (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2073"&gt;&lt;span style="font-weight: 400;"&gt;#2073&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Added validation rule for synchronization nodes that contain outgoing triggers (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2071"&gt;&lt;span style="font-weight: 400;"&gt;#2071&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;&lt;strong&gt;Bugfixes:&lt;/strong&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed strange positioning of transition arrows at exit nodes (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2158"&gt;&lt;span style="font-weight: 400;"&gt;#2158&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed a bug which in certain situations made synchronization nodes being traversed while not all incoming states were active (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/1386"&gt;&lt;span style="font-weight: 400;"&gt;#1386&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed several problems with toggling the documentation mode (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/1939"&gt;&lt;span style="font-weight: 400;"&gt;#1939&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed usage of equally named Java operations from different interfaces during simulation (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2095"&gt;&lt;span style="font-weight: 400;"&gt;#2095&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed “&amp;lt;” and “&amp;gt;” signs being replaced with 0 and 2 in C# code generation (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2066"&gt;&lt;span style="font-weight: 400;"&gt;#2066&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Removed unused functions from generated event driven Java code (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2020"&gt;&lt;span style="font-weight: 400;"&gt;#2020&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Removed unused functions from generated event driven C++ code (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2019"&gt;&lt;span style="font-weight: 400;"&gt;#2019&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed rename refactoring via context menu for Linux (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2023"&gt;&lt;span style="font-weight: 400;"&gt;#2023&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed several scoping issues in SCTUnit&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed problem in SCTUnit when used with cycle-based statecharts&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Several improvements for SCTUnit C++ generator&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Make C++ methods defined inline in class definition available in C/C++ domain&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed calling function pointers from structs in C/C++ domain&lt;br&gt;&lt;/span&gt;&amp;nbsp;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;p&gt;&lt;strong&gt;Performance / Stabilization&lt;/strong&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Some performance improvements for pinned definition section (&lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/1976"&gt;&lt;span style="font-weight: 400;"&gt;#1976&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;, &lt;/span&gt;&lt;a href="https://github.com/Yakindu/statecharts/issues/2030"&gt;&lt;span style="font-weight: 400;"&gt;#2030&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;)&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed a problem that caused a deadlock in certain situations&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Fixed refreshing/updating of references when files get deleted/added&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Fnew-and-noteworthy-yakindu-statechart-tools-august-release&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <category>english</category>
+      <pubDate>Mon, 20 Aug 2018 12:45:00 GMT</pubDate>
+      <author>kutz@itemis.de (Thomas Kutz)</author>
+      <guid>https://blogs.itemis.com/en/new-and-noteworthy-yakindu-statechart-tools-august-release</guid>
+      <dc:date>2018-08-20T12:45:00Z</dc:date>
+    </item>
+    <item>
+      <title>Rolling the dice – part 2: Controlling the state machine externally</title>
+      <link>https://blogs.itemis.com/en/rolling-the-dice-part-2-controlling-the-state-machine-externally</link>
+      <description>&lt;div class="hs-featured-image-wrapper"&gt; 
+ &lt;a href="https://blogs.itemis.com/en/rolling-the-dice-part-2-controlling-the-state-machine-externally" title="" class="hs-featured-image-link"&gt; &lt;img src="https://blogs.itemis.com/hubfs/Blog/YAKINDU%20Statechart%20Tools/dice-wu%CC%88rfel-blau.jpg" alt="dice-würfel-blau" class="hs-featured-image" style="width:auto !important; max-width:50%; float:left; margin:0 15px 15px 0;"&gt; &lt;/a&gt; 
+&lt;/div&gt;    
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In the &lt;a href="/en/rolling-the-dice-part-1-calling-java-methods-from-state-machines"&gt;first part&lt;/a&gt;, we have integrated Java functionality into a YAKINDU statechart. In our particular case, it is a Java method that delivers a random value allowing the statechart to behave like a dice. Watching that dice may be nice, but now we want to move on to our second major scenario and control the dice statechart from an external application, in our case a Java program. Within that program, we can create, start and terminate the statechart, read statechart variables as it executes, raise events, pass values into the statechart, receive outgoing events, etc.&lt;/span&gt;&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In the &lt;a href="/en/rolling-the-dice-part-1-calling-java-methods-from-state-machines"&gt;first part&lt;/a&gt;, we have integrated Java functionality into a YAKINDU statechart. In our particular case, it is a Java method that delivers a random value allowing the statechart to behave like a dice. Watching that dice may be nice, but now we want to move on to our second major scenario and control the dice statechart from an external application, in our case a Java program. Within that program, we can create, start and terminate the statechart, read statechart variables as it executes, raise events, pass values into the statechart, receive outgoing events, etc.&lt;/span&gt;&lt;/p&gt;  
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/dice-wu%CC%88rfel-blau.jpg?width=724&amp;amp;name=dice-wu%CC%88rfel-blau.jpg" alt="dice-würfel-blau" style="width: 724px;" width="724"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;a href="https://www.itemis.com/en/yakindu/state-machine/"&gt;&lt;br&gt;YAKINDU Statechart Tools&lt;/a&gt; can turn a graphically-modeled statechart into Java source code, and that’s the way to integrate it into your own Java application. Alternatively, you could use C or C++. YAKINDU Statechart Tools comes with source code generators for Java, C, and C++ out of the box. Support for additional languages is available, too, and you could even write your own generator for your own language, if you want.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Creating a generator model for the statechart&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;For generating a statechart as Java source code, we need a so-called &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;generator model&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. It controls the details of how code generation is done.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In the main menu, select &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;New → Other … → YAKINDU SCT → Code generator model&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. In the wizard, change the name of the generator model file from &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;default.sgen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; to &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice.sgen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. Make sure that &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;YAKINDU SCT Java Code Generator&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is selected as the generator, and check &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice.sct&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; as the statechart to generate as source code.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Clicking on &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Finish&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; creates the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice.sgen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; generator model file and opens it in an editor. You should add the configuration features highlighted below:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;GeneratorModel for yakindu::java {
+
+    statechart Dice_rolling {
+
+        feature Naming {
+   	    basePackage = "de.itemis.examples.dice"
+   	}
+
+    	feature GeneralFeatures {
+   	    TimerService = true
+   	}
+
+   	feature Outlet {
+   	    targetProject = "dice"
+   	    targetFolder = "src-gen"
+   	    libraryTargetFolder = "src"
+   	}
+    }
+}&lt;/pre&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The generator model controls the Java code generation, and indeed the Java code has already been generated. You can find it in the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;src&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;src-gen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; folders. Actually (and unfortunately), it has even been generated twice: first into the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; package and then, due to our modifications, into the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;de.itemis.examples.dice&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; package, too. You should remove the former one. By the way, you can remove any generated files anytime. Recreating them is always possible by right-clicking on &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice.sgen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; and then selecting &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Generate Code Artifacts&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;What’s more important: The source code is recreated each time you modify the statechart model. Thus, once you have set up the generator model properly, you usually won’t have to worry about it anymore. The generated code is always in sync with your statechart.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Oh, you also have to let the Java builder know that it should look into the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;src-gen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; folder for Java source files: Right-click on that folder, then select &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Build Path → Use as Source Folder&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. The &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;src-gen&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; folder contains those sources that will change when you modify your statechart, while the Java sources generated in &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;src&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; are agnostic to model changes.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Writing the Java application&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The first version of our Java application should do the following:&lt;/span&gt;&lt;/p&gt; 
+&lt;ol&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Create and initialize the statechart.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Enter the statechart.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Throw the dice a number of times. Each time, print the face value and the accumulated counters.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;Exit the statechart.&lt;/span&gt;&lt;/li&gt; 
+&lt;/ol&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;So here’s the code, which I created as the Java source file &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;StatechartController.java&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. Some aspects of it I am going to explain in a second.&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint linenums"&gt;package de.itemis.examples.dice;
+&lt;br&gt;import java.util.concurrent.ThreadLocalRandom;
+&lt;br&gt;import de.itemis.examples.dice.dice_rolling.Dice_rollingStatemachine;
+import de.itemis.examples.dice.dice_rolling.Dice_rollingStatemachine.State;
+import de.itemis.examples.dice.dice_rolling.IDice_rollingStatemachine.SCInterfaceOperationCallback;
+&lt;br&gt;public class StatechartController {
+    &lt;br&gt;    class MyOperationsImplementation implements SCInterfaceOperationCallback {
+    &lt;br&gt;        public long dice() {
+            final int MIN = 1;
+            final int MAX = 6;
+            return ThreadLocalRandom.current().nextInt(MIN, MAX + 1);
+        }
+    }
+    &lt;br&gt;    private Dice_rollingStatemachine statemachine;
+    &lt;br&gt;    private void setUp() {
+        statemachine = new Dice_rollingStatemachine();
+        statemachine.getSCInterface().setSCInterfaceOperationCallback(new MyOperationsImplementation());
+        statemachine.init();
+    }
+    &lt;br&gt;    private void run() {
+        setUp();
+        statemachine.enter();
+        assertTrue(statemachine.isStateActive(State.main_region_Rolling_the_dice));
+        &lt;br&gt;        for (int i = 1; i &amp;lt;= 1000; i++) {
+            long fv = statemachine.getFaceValue();
+            assertTrue(fv &amp;gt;= 1 &amp;amp;&amp;amp; fv &amp;lt;= 6, "Face value is not between 1 and 6.");
+            &lt;br&gt;            statemachine.runCycle();
+            assertTrue(statemachine.isStateActive(State.main_region_Results));
+            &lt;br&gt;            System.out.print("cycle: " + i + ", ");
+            System.out.print("faceValue: " + fv + ", ");
+            System.out.print("count1: " + statemachine.getCount1() + ", ");
+            System.out.print("count2: " + statemachine.getCount2() + ", ");
+            System.out.print("count3: " + statemachine.getCount3() + ", ");
+            System.out.print("count4: " + statemachine.getCount4() + ", ");
+            System.out.print("count5: " + statemachine.getCount5() + ", ");
+            System.out.print("count6: " + statemachine.getCount6());
+            System.out.println();
+&lt;br&gt;            statemachine.runCycle();
+            assertTrue(statemachine.isStateActive(State.main_region_Rolling_the_dice));
+        }
+&lt;br&gt;        statemachine.exit();
+    }
+&lt;br&gt;    private void assertTrue(boolean assertion) {
+        assertTrue(assertion, "");
+    }
+&lt;br&gt;    private void assertTrue(boolean assertion, String message) {
+        if (!assertion)
+            throw new RuntimeException("Assertion failed! " + message);
+    }
+&lt;br&gt;    public static void main(String[] args) {
+        StatechartController statechartController = new StatechartController();
+        statechartController.run();
+    }
+&lt;br&gt;}&lt;/pre&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;The &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;run()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method [line 28] does the bulk of the work. After calling the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;setUp()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method [line 29] to perform some initial actions – we’ll look at them later –, the statechart is available as an object in the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;&lt;span&gt;statechart&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; variable.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Here’s the statechart from part 1 again:&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools-throwing-dice-loop.png?width=724&amp;amp;name=YAKINDU-Statechart-Tools-throwing-dice-loop.png" alt="YAKINDU-Statechart-Tools-throwing-dice-loop" style="width: 724px;" width="724"&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p style="text-align: center;"&gt;&lt;span style="font-weight: 400;"&gt;&lt;i&gt;Figure 1: Repeatedly throwing the dice in a loop&lt;/i&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Calling the statechart’s &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;enter()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method starts the state machine [line 30]. The execution flow traverses from the initial state to the &lt;/span&gt;&lt;strong&gt;Roll_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; state. We can verify that we are really at that state using the following statement in [line 31]:&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;code&gt;assertTrue(statemachine.isStateActive(State.main_region_Rolling_the_dice));&lt;/code&gt; &lt;br&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;Rolling the dice a thousand times is done in the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;for&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; loop [line 33]. &amp;nbsp;When the loop is entered, the execution flow is at the &lt;/span&gt;&lt;strong style="background-color: transparent;"&gt;Roll_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; state. That means, the &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;dice()&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; operation has already been executed and the statechart variable &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;faceValue&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; should have a valid value between 1 and 6. We can retrieve that value from the state machine via &lt;/span&gt;&lt;i style="background-color: transparent;"&gt;statemachine.getFaceValue()&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; [line 34] and then check whether it is in the required range or not [line 35].&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Now &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is called [line 37]. This statement instructs the state machine to execute a single run-to-completion step. In our case, that means the state machine evaluates the guard conditions of the transitions and proceeds to one of the &lt;/span&gt;&lt;strong&gt;D…&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; states. Since they are contained in the &lt;/span&gt;&lt;strong&gt;Results&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; composite state, it is sufficient to verify that the latter is active [line 38].&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The following statements again demonstrate how to read statechart variables [lines 42–47]. By the way, the statechart also provides corresponding setter methods, allowing to change variables.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Another call to &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is made [line 50]. It causes the state machine to transition back to the &lt;/span&gt;&lt;strong&gt;Roll_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; state.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Finally, after having performed the predefined number of loop cycles, &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.exit()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is called to terminate the state machine [line 54]. All statechart variables become undefined.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Setting up the state machine&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;We have so far skipped looking at how to set up the state machine. This is done in the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;setUp()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method [line 22] and consists of the following steps:&lt;/span&gt;&lt;/p&gt; 
+&lt;ul&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;The statement &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine = new Dice_rollingStatemachine()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; creates the state machine instance [line 23]. It is an object of the generated &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Dice_rollingStatemachine&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; class. Look at the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;IDice_rollingStatemachine&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; interface to learn which methods etc. this particular state machine supports.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;If a statechart uses operations – and our’s does so –, the Java application has to make them available to the state machine. For this purpose, they have to be implemented as methods of a class that implements the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;SCInterfaceOperationCallback&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; interface. The &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;MyOperationsImplementation&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is such a class [line 11], implementing the required &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method [line 13].&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;The statement &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.getSCInterface().setSCInterfaceOperationCallback(new MyOperationsImplementation())&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; makes the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;MyOperationsImplementation&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; instance available to the state machine [line 24], so that the latter can execute the operations defined therein.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;If a state machine uses timed events – and our's does not –, the application must provide it with a timer implementation. YAKINDU Statechart Tools comes with a default timer service. If you want to use it, include this statement: &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.setTimer(new TimerService())&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;.&lt;/span&gt;&lt;/li&gt; 
+ &lt;li style="font-weight: 400;"&gt;&lt;span style="font-weight: 400;"&gt;As a last set-up step, &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.init()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is invoked to initialize the state machine’s internals and those variables that have default values [line 25].&lt;/span&gt;&lt;/li&gt; 
+&lt;/ul&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Executing the Java program&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In the project explorer view, right-click on &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;StatechartController.java&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; and select &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Run As → Java Application&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. &lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Passing parameters to the state machine&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Now let’s go a step further. Instead of having the state machine actively call the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method, we want to pass the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;faceValue&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; from the outside into the state machine and then let it work on it. That’s actually quite easy.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The first step is to remove the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; operation from the statechart and the entry action from the &lt;/span&gt;&lt;strong&gt;Rolling_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; state. Saving the statechart now leads to an error in our &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;StatechartController&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; Java class, because the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;SCInterfaceOperationCallback&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; interface is no longer defined. The code generator has created the modified statechart as Java source code, and since that statechart does without any operations, the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;SCInterfaceOperationCallback&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; interface is no longer needed and thus removed.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Consequently, we have to adapt our Java class to that circumstance. We remove the now erroneous import statement and the local class &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;MyOperationsImplementation&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. However, we still need the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;dice()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method, so we’ll keep it. In the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;setUp()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method, we remove the long line setting the operations callback.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The second step is to retrieve the random value in the Java application and pass it to the state machine. We have to do this each time the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;for&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; loop executes:&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;for (int i = 1; i &amp;lt;= 1000; i++) {
+    long fv = dice();
+    statemachine.setFaceValue(fv);&lt;/pre&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;After having set the state machine’s &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;faceValue&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; variable, suspicious souls might want to retrieve it again to make sure it has actually been set correctly:&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;assertTrue(fv == statemachine.getFaceValue(),
+    "Face value is expected to be " + fv + ", but is " +
+    statemachine.getFaceValue() + " instead.");&lt;/pre&gt; 
+&lt;br&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;After that, we call &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; and continue as before.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Raising an event programmatically&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Another important means of controlling a state machine is raising events in the state machine and receiving events the state machine has raised. If the statechart defines an incoming event named &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;foobar&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;, the generated code contains a method named &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;raiseFoobar()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. Calling this method raises that event in the state machine.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;An event can also carry a value of a primitive type, for example an integer. We can take advantage of this feature by raising an event in the state machine with the dice’s face value as the event’s value.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;But let’s have a look at the modified statechart first:&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;img src="https://blogs.itemis.com/hs-fs/hubfs/Blog/YAKINDU%20Statechart%20Tools/YAKINDU-Statechart-Tools,%20Submit-dice-value-event.png?width=724&amp;amp;name=YAKINDU-Statechart-Tools,%20Submit-dice-value-event.png" alt="YAKINDU-Statechart-Tools, Submit-dice-value-event" style="width: 724px;" width="724"&gt;&lt;/p&gt; 
+&lt;p style="text-align: center;"&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;Figure 2: Submitting the dice’s face value as an event&lt;/span&gt;&lt;/i&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;The &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;faceValue&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; variable is completely gone. There are two new elements: the incoming event &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;diced&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; of type integer and the outgoing event &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;done&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. Instead of checking the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;faceValue&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; variable, the transitions’ guards now check the value of the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;diced&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; event.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Another addition is the outgoing &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;done&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; event. The state machine raises it after processing the face value has been completed, and the event signals that fact to the “outer world”. Admittedly, it does not make much sense in this context. However, I included it here to show you the mechanics.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;How does the corresponding Java code look like? Here’s the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;for&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; loop (output statements omitted for brevity):&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;for (int i = 1; i &amp;lt;= 1000; i++) {
+    long fv = dice();
+    statemachine.raiseDiced(fv);
+    &lt;br&gt;    statemachine.runCycle();
+    assertTrue(statemachine.isStateActive(State.main_region_Results));
+    assertTrue(!statemachine.isRaisedDone(), "Event \"done\" is expected not to be raised here.");
+    &lt;br&gt;    statemachine.runCycle();
+    assertTrue(statemachine.isStateActive(State.main_region_Rolling_the_dice));
+    assertTrue(statemachine.isRaisedDone(), "Event \"done\" is expected to be raised here.");
+}&lt;/pre&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;br&gt;The &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.raiseDiced(fv)&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; statement raises the state machine’s &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;diced&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; event and submits the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;fv&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; variable’s value as the event’s value. However, raising an event does not mean to also process it, at least not in cycle-based mode. This happens only when &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; is called. Please note that the raised event together with its value is available only during the subsequent run cycle! Thus, if you need the event value at any later point in time, make it more permanent and copy it into a variable!&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The drawback of submitting a parameter to the state machine as an event’s value is that you can only submit a single, primitive value. Often this is insufficient. A suitable approach for passing multiple values to a statechart is to combine variables with an event: First set the statechart variables that should serve as parameters one by one, then raise a corresponding event to notify the state machine that it can operate on the variables now.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;As the source code shows, you can check the outgoing &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;done&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; event using the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.isRaisedDone()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method. It returns &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;true&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; if the event has been raised, else it returns &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;false&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;. Please note that a raised event is cleared right at the beginning of the next run cycle. That’s the reason why &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;statemachine.isRaisedDone()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; returns &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;true&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; after the state machine transitioned from &lt;/span&gt;&lt;strong&gt;Results&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; to &lt;/span&gt;&lt;strong&gt;Rolling_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; and &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;false&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; after transitioning from &lt;/span&gt;&lt;strong&gt;Rolling_the_dice&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; to one of the &lt;/span&gt;&lt;strong&gt;D…&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; states.&lt;/span&gt;&lt;/p&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;Event-driven mode&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;I’d like to conclude this topic with a few words on YAKINDU Statechart Tools’ event-driven mode. You can activate it by the &lt;/span&gt;&lt;span style="font-family: terminal, monaco;"&gt;&lt;code&gt;&lt;span style="font-weight: 400;"&gt;@EventDriven&lt;/span&gt;&lt;/code&gt;&lt;/span&gt;&lt;span style="font-weight: 400;"&gt; annotation at the top of your statechart’s definition section.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;If a state machine executes in this mode and an event is raised, the state machine immediately processes it. It does not wait for &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; to be called, but continues operating as long as there are any events to be processed, which includes internally-raised events. This also means that the state machine won’t return control to the outer Java application when each run cycle, but only when all events have been processed.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;In our case, when the control flow reaches the &lt;/span&gt;&lt;strong&gt;Results&lt;/strong&gt;&lt;span style="font-weight: 400;"&gt; state, the state machine is out of events and returns to the caller. Even if the next transition is marked with &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;always&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt;, the state machine will need a trigger to execute it. This could be calling the &lt;/span&gt;&lt;i&gt;&lt;span style="font-weight: 400;"&gt;runCycle()&lt;/span&gt;&lt;/i&gt;&lt;span style="font-weight: 400;"&gt; method or raising any event. That even will be ignored in this particular case, but execution will continue.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Here’s our for loop, again with the output statements omitted: &amp;nbsp;&lt;br&gt;&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;pre class="prettyprint"&gt;for (int i = 1; i &amp;lt;= 1000; i++) {
+    long fv = dice();
+    statemachine.raiseDiced(fv);
+    assertTrue(statemachine.isStateActive(State.main_region_Results));
+    statemachine.runCycle();
+    assertTrue(statemachine.isStateActive(State.main_region_Rolling_the_dice));
+    assertTrue(statemachine.isRaisedDone(), "Event \"done\" is expected to be raised here.");
+}&lt;/pre&gt; 
+&lt;h2&gt;&lt;span style="font-weight: 400;"&gt;May the source be with you!&lt;/span&gt;&lt;/h2&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;The present article illustrates the basic mechanisms of how to integrate custom Java code with statecharts. Now it’s up to you to apply this knowledge to your own application and your own state machine, which is no doubt much more complex and challenging than my little example.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;More information on general concepts of state machine code, code generation, and properties of the generated code you can find in chapter &lt;/span&gt;&lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/codegen_generating_state_machine_code#codegen_generating_state_machine_code"&gt;&lt;span style="font-weight: 400;"&gt;“Generating state machine code”&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt; of the &lt;/span&gt;&lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/"&gt;&lt;span style="font-weight: 400;"&gt;YAKINDU Statechart Tools user guide&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;. For details on Java in particular, please see subsection &lt;/span&gt;&lt;a href="https://www.itemis.com/en/yakindu/state-machine/documentation/user-guide/codegen_generating_state_machine_code#codegen_java_code_generator"&gt;&lt;span style="font-weight: 400;"&gt;“Java code generator”&lt;/span&gt;&lt;/a&gt;&lt;span style="font-weight: 400;"&gt;.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;We are currently thinking about establishing an even stronger Java integration in a future version of YAKINDU Statechart Tools, similar to what we have done with the C and C++ integration (“Deep C/C++ Integration”). Thus, a Java application and a statechart could not only communicate by means of simple types, but they could use any Java types. For example, an application could raise an event with a complex object and pass it to the statechart.&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;Have fun, and may the (generated) source be with you!&lt;br&gt;&lt;/span&gt;&lt;/p&gt; 
+&lt;p&gt;&lt;span style="font-weight: 400;"&gt;&lt;/span&gt;&lt;/p&gt;  
+&lt;img src="https://track.hubspot.com/__ptq.gif?a=761475&amp;amp;k=14&amp;amp;r=https%3A%2F%2Fblogs.itemis.com%2Fen%2Frolling-the-dice-part-2-controlling-the-state-machine-externally&amp;amp;bu=https%253A%252F%252Fblogs.itemis.com&amp;amp;bvt=rss" alt="" width="1" height="1" style="min-height:1px!important;width:1px!important;border-width:0!important;margin-top:0!important;margin-bottom:0!important;margin-right:0!important;margin-left:0!important;padding-top:0!important;padding-bottom:0!important;padding-right:0!important;padding-left:0!important; "&gt;</content:encoded>
+      <category>YAKINDU</category>
+      <category>Statecharts</category>
+      <category>Embedded</category>
+      <category>State Machine</category>
+      <pubDate>Thu, 09 Aug 2018 14:20:00 GMT</pubDate>
+      <author>rainer.klute@itemis.de (Rainer Klute)</author>
+      <guid>https://blogs.itemis.com/en/rolling-the-dice-part-2-controlling-the-state-machine-externally</guid>
+      <dc:date>2018-08-09T14:20:00Z</dc:date>
+    </item>
+  </channel>
+</rss>
